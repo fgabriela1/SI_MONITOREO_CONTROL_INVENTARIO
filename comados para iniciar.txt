@@ -1,0 +1,13 @@
+ruta
+
+cd "C:\Users\omar0\Desktop\Pagina para Control de Inventario"
+
+
+comados
+
+node app.js
+
+
+o
+
+nodemon app.js

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de Inventario — Seleccionar Rol</title>
+  <style>
+    :root {
+      --bg: #f7f0dc; --card: #e8dec3;
+      --pill-1: #9a8f7a; --pill-2: #b1a792; --pill-3: #c2b8a5;
+      --text: #2b2b2b; --muted: #5b5b5b; --focus: #2a7fff;
+      --radius-xl: 22px; --radius-pill: 999px;
+      --shadow: 0 10px 24px rgba(0,0,0,.08);
+    }
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);color:var(--text);min-height:100dvh;display:grid;place-items:center}
+    .wrap{width:min(880px,92vw)}
+    .card{background:var(--card);border-radius:var(--radius-xl);padding:clamp(18px,2.8vw,28px);box-shadow:var(--shadow)}
+    .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;border-radius:var(--radius-pill);padding:12px 12px 12px 14px;position:relative;isolation:isolate}
+    .row+.row{margin-top:14px}
+    .row__pill{position:absolute;inset:0;border-radius:var(--radius-pill);z-index:-1;opacity:.95}
+    .row.admin .row__pill{background:var(--pill-1)}
+    .row.gerente .row__pill{background:var(--pill-2)}
+    .row.empleado .row__pill{background:var(--pill-3)}
+    .icon{width:44px;height:44px;display:grid;place-items:center;background:rgba(255,255,255,.14);border-radius:12px}
+    .icon svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2}
+    .title{font-weight:800;letter-spacing:.3px;color:#fff}
+    .subtitle{color:#f1f1f1;opacity:.9;margin-top:6px;font-size:.95rem}
+    .btn{appearance:none;border:0;cursor:pointer;padding:10px 18px;border-radius:999px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:#0000001a;color:#fff;transition:transform .08s ease, background .2s ease}
+    .btn:hover{transform:translateY(-1px);background:#00000033}
+    header{margin-bottom:18px;padding:0 8px}
+    header h1{margin:0 0 6px;font-size:clamp(22px,3.4vw,34px)}
+    header p{margin:0;color:var(--muted)}
+    footer{text-align:center;margin-top:16px;color:var(--muted);font-size:.9rem}
+    @media(max-width:520px){.row{grid-template-columns:40px 1fr auto;padding:10px}.icon{width:40px;height:40px}.icon svg{width:22px;height:22px}.btn{padding:8px 14px;font-size:.85rem}}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Selector de rol para Control de Inventario">
+    <header>
+      <h1>Selecciona tu rol</h1>
+      <p>Elige cómo quieres ingresar al sistema de Control de Inventario.</p>
+    </header>
+
+    <section class="card" aria-live="polite">
+      <!-- ADMIN -->
+      <div class="row admin">
+        <div class="row__pill" aria-hidden="true"></div>
+        <div class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div>
+          <div class="title">ADMINISTRADOR</div>
+          <div class="subtitle">Acceso completo</div>
+        </div>
+        <button class="btn" data-go="login_admin.html">USAR</button>
+      </div>
+
+      <!-- GERENTE -->
+      <div class="row gerente">
+        <div class="row__pill" aria-hidden="true"></div>
+        <div class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" stroke="#fff"></circle><path d="M2 20c0-3.333 2.667-6 6-6" stroke="#fff"></path><circle cx="17" cy="9" r="3" stroke="#fff"></circle><path d="M12 20c0-3 2.5-5.5 5.5-5.5" stroke="#fff"></path></svg>
+        </div>
+        <div>
+          <div class="title">GERENTE</div>
+          <div class="subtitle">Gestión de inventario y reportes</div>
+        </div>
+        <button class="btn" data-go="login_gerente.html">USAR</button>
+      </div>
+
+      <!-- EMPLEADO -->
+      <div class="row empleado">
+        <div class="row__pill" aria-hidden="true"></div>
+        <div class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.2" stroke="#fff"></circle><path d="M4 20c0-4.2 3.4-7.6 7.6-7.6h.8C16.6 12.4 20 15.8 20 20" stroke="#fff"></path></svg>
+        </div>
+        <div>
+          <div class="title">EMPLEADO</div>
+          <div class="subtitle">Consulta de productos</div>
+        </div>
+        <button class="btn" data-go="login_empleado.html">USAR</button>
+      </div>
+    </section>
+
+    <footer>© <span id="y"></span> Douglas Omar Mendez Hernandez</footer>
+  </div>
+
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Navegación simple: abre lo que diga data-go
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const go = btn.getAttribute('data-go') || '#';
+        if (go === '#') { alert('Esta sección aún no está disponible.'); return; }
+        window.location.href = go;
+      });
+    });
+
+    // Click en toda la fila + teclado
+    document.querySelectorAll('.row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.matches('.btn')) return;
+        row.querySelector('.btn')?.click();
+      });
+      row.tabIndex = 0;
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.querySelector('.btn')?.click(); }
+      });
+    });
+  </script>
+</body>
+</html>

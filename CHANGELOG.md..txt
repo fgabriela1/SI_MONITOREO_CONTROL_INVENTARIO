@@ -1,0 +1,7 @@
+echo "# [0.1.0] - 2025-09-29
+## Added
+- Estructura inicial del proyecto
+- Página roles.html
+- Formularios de login (admin, gerente, empleado)
+- Página hola.html
+- Servidor Node.js + Express (app.js)" > CHANGELOG.md

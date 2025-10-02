@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — Gerente</title>
+  <style>
+    :root { --bg:#f7f0dc; --card:#e8dec3; --pill:#b1a792; --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff; --shadow:0 10px 24px rgba(0,0,0,.08) }
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);color:var(--text);min-height:100dvh;display:grid;place-items:center}
+    .card{width:min(540px,92vw);background:var(--card);border-radius:32px;padding:28px 26px 30px;box-shadow:var(--shadow)}
+    h1{margin:0 0 4px;text-align:center;font-size:1.2rem}
+    .sub{margin:0 0 18px;text-align:center;color:var(--muted)}
+    label{display:block;font-weight:800;margin:18px 10px 8px}
+    .input{width:100%;border:0;border-radius:30px;padding:16px 18px;background:#cfc6b7;outline:none;font-size:1rem;color:#2b2b2b}
+    .input:focus{box-shadow:0 0 0 3px var(--focus)}
+    .btn{width:min(420px,86%);display:block;margin:22px auto 6px;padding:14px 20px;border:0;border-radius:34px;background:#6b6253;color:#fff;font-weight:800;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;transition:transform .08s ease, filter .2s ease}
+    .btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+    .btn:active{transform:translateY(0)}
+    .tag{display:inline-flex;align-items:center;gap:8px;background:var(--pill);color:#fff;padding:8px 12px;border-radius:999px;font-weight:800;margin:0 auto 8px}
+    .center{display:grid;place-items:center}
+    .msg{margin-top:10px;text-align:center;font-size:.95rem}
+    .msg.ok{color:#0a7a2f}.msg.err{color:#8b1111}
+    .top-link{position:fixed;left:18px;top:16px;text-decoration:none;font-weight:700;color:#5b5b5b}
+  </style>
+</head>
+<body>
+  <a class="top-link" href="roles.html">← Volver</a>
+  <div class="card" role="form" aria-label="Iniciar sesión — Gerente">
+    <div class="center"><span class="tag">GERENTE</span></div>
+    <h1>Iniciar Sesión</h1>
+    <p class="sub">Ingresa tus credenciales para acceder al sistema</p>
+    <form id="form">
+      <label for="id">Usuario o correo</label>
+      <input id="id" class="input" name="id" autocomplete="username" required placeholder="tu_usuario o tu@correo.com" />
+      <label for="pwd">Contraseña</label>
+      <input id="pwd" class="input" type="password" name="pwd" autocomplete="current-password" required placeholder="••••••••" />
+      <button class="btn" type="submit">Iniciar sesión</button>
+      <div id="feedback" class="msg" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <script>
+    const ROLE = 'gerente';
+    const form = document.getElementById('form');
+    const fb = document.getElementById('feedback');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      fb.textContent = 'Verificando…'; fb.className = 'msg';
+      const id = document.getElementById('id').value.trim();
+      const pwd = document.getElementById('pwd').value;
+      if (!id || !pwd){ fb.textContent = 'Completa ambos campos.'; fb.className = 'msg err'; return; }
+
+      try {
+        const res = await fetch(`/api/login?role=${ROLE}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: id, password: pwd })
+        });
+        if (!res.ok) throw new Error('Credenciales inválidas');
+        fb.textContent = 'Acceso concedido'; fb.className = 'msg ok';
+        setTimeout(() => { window.location.href = 'hola.html'; }, 300);
+      } catch (err){
+        fb.textContent = err.message || 'Error de conexión'; fb.className = 'msg err';
+      }
+    });
+  </script>
+</body>
+</html>
