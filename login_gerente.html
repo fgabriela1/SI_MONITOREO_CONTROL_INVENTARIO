@@ -47,7 +47,6 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       fb.textContent = 'Verificando…'; fb.className = 'msg';
-
       const id = document.getElementById('id').value.trim();
       const pwd = document.getElementById('pwd').value;
       if (!id || !pwd){ fb.textContent = 'Completa ambos campos.'; fb.className = 'msg err'; return; }
