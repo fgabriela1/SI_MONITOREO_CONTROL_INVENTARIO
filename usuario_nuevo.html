@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Registrar Usuario — Sistema de Inventario</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e8dec3; --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff; --shadow:0 10px 24px rgba(0,0,0,.08)
+    }
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+      color:var(--text);
+      min-height:100dvh;
+      display:grid;
+      place-items:center
+    }
+    .card{
+      width:min(720px,92vw);
+      background:var(--card);
+      border-radius:28px;
+      padding:26px 24px;
+      box-shadow:var(--shadow)
+    }
+    h1{margin:0 0 6px;text-align:center;font-size:1.3rem}
+    .sub{margin:0 0 16px;text-align:center;color:var(--muted)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px 14px;              /* compacto y consistente */
+    }
+    .full{grid-column:1 / -1}
+
+    label{
+      display:block;
+      font-weight:800;
+      margin:2px 10px 6px;        /* un poco menos margen */
+      font-size:1rem;
+    }
+
+    /* 🔹 Inputs/Select compactos y sin solaparse */
+    .input, .select{
+      width:95%;                  /* antes 100% */
+      display:block;
+      margin:0 auto;
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;          /* altura más corta */
+      background:#cfc6b7;
+      outline:none;
+      font-size:0.95rem;
+      color:#2b2b2b;
+      box-sizing:border-box;
+    }
+    .input:focus, .select:focus{ box-shadow:0 0 0 3px var(--focus) }
+
+    .btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+    .btn{
+      appearance:none;border:0;border-radius:999px;padding:12px 18px;cursor:pointer;
+      font-weight:800;letter-spacing:.4px;background:#6b6253;color:#fff
+    }
+    .btn.secondary{background:#00000022;color:#2b2b2b}
+    .msg{margin-top:10px;text-align:center;font-size:.95rem}
+    .ok{color:#0a7a2f}.err{color:#8b1111}
+    .top-link{position:fixed;left:18px;top:16px;text-decoration:none;font-weight:700;color:#5b5b5b}
+
+    @media (max-width:720px){
+      .grid{grid-template-columns:1fr}
+      .input,.select{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <a class="top-link" href="index_admin.html">← Volver</a>
+  <div class="card" role="form" aria-label="Registrar nuevo usuario">
+    <h1>Registrar Usuario</h1>
+    <p class="sub">Ingresa los datos tal como están definidos en la base de datos</p>
+
+    <form id="form">
+      <div class="grid">
+        <div class="full">
+          <label for="rol">Rol</label>
+          <select id="rol" class="select" name="rol" required>
+            <option value="">Selecciona un rol…</option>
+            <option value="admin">Administrador</option>
+            <option value="gerente">Gerente</option>
+            <option value="empleado">Empleado</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="usuario">Usuario</label>
+          <input id="usuario" class="input" name="usuario" required placeholder="ej. DouglasH" />
+        </div>
+
+        <div>
+          <label for="correo">Correo</label>
+          <input id="correo" class="input" name="correo" type="email" required placeholder="ej. usuario@correo.com" />
+        </div>
+
+        <div class="full">
+          <label for="contrasena">Contraseña</label>
+          <input id="contrasena" class="input" name="contrasena" type="password" required placeholder="••••••••" />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn" type="submit">Guardar</button>
+        <button class="btn secondary" type="button" id="cancel">Cancelar</button>
+      </div>
+      <div id="feedback" class="msg" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <script>
+    // Solo admin
+    (function protect(){
+      const raw = localStorage.getItem('inv.user');
+      if(!raw){ window.location.replace('roles.html'); return; }
+      try{
+        const u = JSON.parse(raw);
+        if((u.role||'').toLowerCase() !== 'admin'){
+          alert('Solo administradores pueden registrar usuarios.');
+          window.location.replace('roles.html'); return;
+        }
+      }catch(_){}
+    })();
+
+    // Form
+    const form = document.getElementById('form');
+    const fb   = document.getElementById('feedback');
+
+    document.getElementById('cancel').addEventListener('click', () => {
+      window.location.href = 'index_admin.html';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      fb.textContent = 'Guardando…'; fb.className = 'msg';
+
+      const rol = document.getElementById('rol').value.trim();
+      const usuario = document.getElementById('usuario').value.trim();
+      const correo = document.getElementById('correo').value.trim();
+      const contrasena = document.getElementById('contrasena').value;
+
+      if(!rol || !usuario || !correo || !contrasena){
+        fb.textContent = 'Completa todos los campos.'; fb.className = 'msg err'; return;
+      }
+
+      try{
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ rol, usuario, correo, contrasena })
+        });
+        const data = await res.json().catch(()=> ({}));
+        if(!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo guardar');
+
+        fb.textContent = 'Usuario registrado correctamente'; fb.className = 'msg ok';
+        form.reset();
+      }catch(err){
+        fb.textContent = err.message || 'Error del servidor'; fb.className = 'msg err';
+      }
+    });
+  </script>
+</body>
+</html>

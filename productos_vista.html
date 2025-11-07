@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Productos — Vista General</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e8dec3; --surface:#e2d8be;
+      --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff; --shadow:0 10px 24px rgba(0,0,0,.08);
+      --danger:#b24b36; --warn:#c98016; --info:#2a7fff; --ok:#0a7a2f;
+      --chip:#d7ceb9;
+    }
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+      color:var(--text); min-height:100dvh; display:grid; place-items:center;
+    }
+    .wrap{width:min(1100px,95vw); margin:20px auto 44px}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .h1{font-size:1.3rem;font-weight:800}
+    .card{background:var(--card);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+    .toolbar{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+    .search{flex:1;min-width:240px;background:#cfc6b7;border-radius:999px;padding:12px 16px;display:flex;gap:10px;align-items:center}
+    .search input{border:0;outline:none;background:transparent;width:100%;font-size:1rem}
+    .select{border:0;border-radius:999px;padding:12px 14px;background:#cfc6b7;outline:none}
+    .select:focus{box-shadow:0 0 0 3px var(--focus)}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{padding:10px 12px;text-align:left}
+    thead th{color:#4b463b;font-size:.92rem}
+    tbody tr{background:var(--surface)}
+    tbody tr td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tbody tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .muted{color:var(--muted)}
+    .badge{display:inline-block;background:var(--chip);padding:6px 10px;border-radius:999px;font-weight:700}
+
+    /* Colores por severidad */
+    .sev-red{ outline:3px solid #e9c7c7; background:linear-gradient(0deg, #f5e1de, var(--surface)); }
+    .sev-orange{ outline:3px solid #eadcba; background:linear-gradient(0deg, #f4e8d6, var(--surface)); }
+    .sev-blue{ outline:3px solid #c7d6ff; background:linear-gradient(0deg, #e1e9fb, var(--surface)); }
+
+    /* Badges de stock */
+    .stock-badge{border-radius:999px; padding:4px 8px; font-weight:800}
+    .stock-red{ background:var(--danger); color:#fff }
+    .stock-orange{ background:var(--warn); color:#fff }
+    .stock-blue{ background:var(--info); color:#fff }
+    .stock-ok{ background:#cfd6c9; color:#0a4a1f }
+
+    /* Leyenda */
+    .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px}
+    .dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+    .dot.red{background:var(--danger)} .dot.orange{background:var(--warn)} .dot.blue{background:var(--info)}
+
+    /* Filtros de estado */
+    .state-filters{display:flex; gap:8px; flex-wrap:wrap}
+    .chip-btn{
+      appearance:none; border:0; background:var(--chip); color:#2b2b2b;
+      border-radius:999px; padding:8px 12px; font-weight:800; cursor:pointer;
+      transition:transform .08s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .chip-btn:hover{transform:translateY(-1px); filter:brightness(1.03)}
+    .chip-btn.active{box-shadow:0 0 0 3px rgba(0,0,0,.08) inset}
+    .chip-red{background:#e7c1bc} .chip-orange{background:#ecd6b0} .chip-blue{background:#cfe0ff} .chip-green{background:#d7e6d0}
+
+    /* ← Volver (igual a la muestra) */
+    .top-link{
+      position:fixed; left:18px; top:16px;
+      text-decoration:none; font-weight:700; color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <a class="top-link" href="index_empleado.html">← Volver</a>
+  <div class="wrap">
+    <div class="top">
+      <div class="h1">Vista de Productos</div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="search">
+          🔎 <input id="q" type="search" placeholder="Buscar por código, nombre o categoría…"/>
+        </div>
+        <select id="catFilter" class="select">
+          <option value="">Todas las categorías</option>
+        </select>
+        <span id="count" class="badge">0 productos</span>
+      </div>
+
+      <!-- Filtros de estado -->
+      <div class="state-filters" style="margin-bottom:8px">
+        <button class="chip-btn active" data-state="">Todos</button>
+        <button class="chip-btn chip-red" data-state="red">🔴 Sin stock</button>
+        <button class="chip-btn chip-orange" data-state="orange">🟠 Bajo mínimo</button>
+        <button class="chip-btn chip-blue" data-state="blue">🔵 En mínimo</button>
+        <button class="chip-btn chip-green" data-state="ok">✅ En nivel</button>
+      </div>
+
+      <div class="legend muted">
+        <span><span class="dot red"></span> Sin stock</span>
+        <span><span class="dot orange"></span> Bajo mínimo</span>
+        <span><span class="dot blue"></span> En mínimo</span>
+      </div>
+
+      <div class="tablewrap">
+        <table aria-label="Tabla de productos">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Mínimo</th>
+              <th class="muted">Creado</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <!-- filas -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (s)=>document.querySelector(s);
+    const rows = $('#rows'), q = $('#q'), count = $('#count'), catFilter = $('#catFilter');
+    const stateBtns = Array.from(document.querySelectorAll('.state-filters .chip-btn'));
+    let stateFilter = ""; // "", "red", "orange", "blue", "ok"
+
+    q.addEventListener('input', ()=> render(window.__DATA || [], q.value.trim(), catFilter.value, stateFilter));
+    catFilter.addEventListener('change', ()=> render(window.__DATA || [], q.value.trim(), catFilter.value, stateFilter));
+
+    stateBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        stateBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        stateFilter = btn.dataset.state || "";
+        render(window.__DATA || [], q.value.trim(), catFilter.value, stateFilter);
+      });
+    });
+
+    async function load(){
+      rows.innerHTML = `<tr><td colspan="8" class="muted">Cargando…</td></tr>`;
+      try{
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        if(!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo obtener productos');
+        window.__DATA = data.data || [];
+        buildCatFilter(window.__DATA);
+        render(window.__DATA, q.value.trim(), catFilter.value, stateFilter);
+      }catch(err){
+        rows.innerHTML = `<tr><td colspan="8" class="muted">${err.message || 'Error al cargar'}</td></tr>`;
+      }
+    }
+
+    function buildCatFilter(list){
+      const cats = Array.from(new Set(list.map(p => p.categoria).filter(Boolean))).sort();
+      catFilter.innerHTML = `<option value="">Todas las categorías</option>` +
+        cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+
+    function getSeverity(p){
+      const st = Number(p.stock), mn = Number(p.min_stock);
+      if(st <= 0) return 'red';
+      if(st < mn) return 'orange';
+      if(st === mn) return 'blue';
+      return 'ok';
+    }
+
+    function render(list, term, cat, state){
+      const t = (term||'').toLowerCase();
+      const filtered = list.filter(p => {
+        const passText = !t ||
+          p.code.toLowerCase().includes(t) ||
+          p.name.toLowerCase().includes(t) ||
+          (p.categoria||'').toLowerCase().includes(t);
+        const passCat  = !cat || String(p.categoria||'') === String(cat);
+        const sev = getSeverity(p);
+        const passState = !state || sev === state;
+        return passText && passCat && passState;
+      });
+
+      count.textContent = `${filtered.length} producto${filtered.length===1?'':'s'}`;
+      if(!filtered.length){
+        rows.innerHTML = `<tr><td colspan="8" class="muted">Sin resultados</td></tr>`;
+        return;
+      }
+
+      rows.innerHTML = filtered.map(p=>{
+        const sev = getSeverity(p);
+        const sevClass =
+          sev==='red'    ? 'sev-red' :
+          sev==='orange' ? 'sev-orange' :
+          sev==='blue'   ? 'sev-blue' : '';
+        const stockBadgeClass =
+          sev==='red'    ? 'stock-red' :
+          sev==='orange' ? 'stock-orange' :
+          sev==='blue'   ? 'stock-blue' : 'stock-ok';
+
+        return `
+          <tr class="${sevClass}">
+            <td>${p.id}</td>
+            <td><strong>${escapeHtml(p.code)}</strong></td>
+            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(p.categoria || '—')}</td>
+            <td>$${Number(p.price).toFixed(2)}</td>
+            <td><span class="stock-badge ${stockBadgeClass}">${p.stock}</span></td>
+            <td>${p.min_stock}</td>
+            <td class="muted">${fmtDate(p.created_at)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function fmtDate(d){
+      if(!d) return '—';
+      const dt = new Date(d);
+      if(isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString();
+    }
+
+    load();
+  </script>
+</body>
+</html>

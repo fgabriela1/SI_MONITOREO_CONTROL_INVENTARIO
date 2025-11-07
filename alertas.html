@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Alertas de Stock — Sistema de Inventario</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e8dec3; --surface:#f1e8d2;
+      --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff;
+      --danger:#b24b36; --warn:#c98016; --info:#2a7fff; --ok:#0a7a2f;
+      --shadow:0 10px 24px rgba(0,0,0,.08);
+      --radius-lg:20px; --radius-xl:28px; --radius-pill:999px;
+      --input:#cfc6b7; --chip:#d7ceb9;
+    }
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+      color:var(--text); min-height:100dvh; display:flex; flex-direction:column; align-items:center; padding:20px;
+    }
+    .wrap{width:min(960px,95vw)}
+    h1{margin:0; font-size:1.4rem; text-align:center}
+    p.sub{margin:4px 0 14px; text-align:center; color:var(--muted)}
+
+    .top-link{position:fixed; left:18px; top:16px; text-decoration:none; font-weight:700; color:var(--muted)}
+
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between; margin:12px 0}
+    .state-filters{display:flex; gap:8px; flex-wrap:wrap}
+    .chip-btn{
+      appearance:none; border:0; background:var(--chip); color:#2b2b2b;
+      border-radius:var(--radius-pill); padding:8px 12px; font-weight:800; cursor:pointer;
+      transition:transform .08s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .chip-btn:hover{transform:translateY(-1px); filter:brightness(1.03)}
+    .chip-btn.active{box-shadow:0 0 0 3px rgba(0,0,0,.08) inset}
+    .chip-red{background:#e7c1bc} .chip-orange{background:#ecd6b0} .chip-blue{background:#cfe0ff}
+
+    .badge{display:inline-block; background:var(--chip); padding:6px 10px; border-radius:var(--radius-pill); font-weight:800}
+
+    .card{background:var(--card); border-radius:var(--radius-lg); padding:16px 20px; box-shadow:var(--shadow); margin-bottom:16px}
+    .item{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      background:var(--surface); border-radius:14px; padding:14px 18px; margin:10px 0;
+      border-left:6px solid transparent;
+    }
+    .item .badge-mini{
+      display:inline-block; color:#fff; border-radius:var(--radius-pill);
+      padding:3px 10px; font-weight:800; font-size:.8rem; margin-left:6px;
+    }
+    /* Colores por severidad */
+    .sev-red{ border-left-color: var(--danger); background: linear-gradient(0deg, #f5e1de, var(--surface)); }
+    .sev-red .badge-mini{ background: var(--danger); }
+    .sev-orange{ border-left-color: var(--warn); background: linear-gradient(0deg, #f4e8d6, var(--surface)); }
+    .sev-orange .badge-mini{ background: var(--warn); }
+    .sev-blue{ border-left-color: var(--info); background: linear-gradient(0deg, #e1e9fb, var(--surface)); }
+    .sev-blue .badge-mini{ background: var(--info); }
+
+    .info strong{font-size:1.1rem}
+    .muted{color:var(--muted); font-size:.9rem}
+    .right{display:flex; gap:8px}
+    .btn{
+      appearance:none; border:0; border-radius:var(--radius-pill); padding:10px 14px; cursor:pointer;
+      font-weight:800; letter-spacing:.3px; transition:transform .08s ease, filter .2s ease;
+      background:#00000022; color:#2b2b2b;
+    }
+    .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
+    .btn.primary{background:#6b6253; color:#fff}
+    .btn.secondary{background:#00000022; color:#2b2b2b}
+
+    .reco{background:#f0e5c9; border-radius:14px; padding:16px 20px; box-shadow:var(--shadow)}
+    .reco h3{margin:0 0 8px}
+    .reco ul{margin:0; padding-left:20px; line-height:1.6}
+    .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .dot.red{background:var(--danger)} .dot.orange{background:var(--warn)} .dot.blue{background:var(--info)}
+
+    /* ===== Modal ===== */
+    #modal{
+      position:fixed; inset:0; display:none; place-items:center; z-index:99;
+      background:rgba(0,0,0,.35); backdrop-filter:saturate(120%) blur(1.5px);
+      animation:fadeIn .16s ease-out;
+    }
+    #modal.open{display:grid}
+    #modal .box{
+      width:min(520px,92vw);
+      background:var(--card);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow);
+      padding:22px 22px 18px;
+      transform:translateY(6px);
+      animation:popIn .18s ease-out forwards;
+    }
+    #modal h3{margin:0 0 4px; font-size:1.2rem}
+    #modal p.lead{margin:0 0 14px; color:var(--muted)}
+    .field{margin:12px 0}
+    .field label{display:block; font-weight:800; margin:0 6px 6px}
+    .input{
+      width:100%; border:0; border-radius:14px; padding:14px; background:var(--input);
+      outline:none; font-size:1rem; color:var(--text);
+    }
+    .input:focus{box-shadow:0 0 0 3px var(--focus)}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .row .hint{color:var(--muted); font-size:.9rem}
+    .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:12px}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:#d7ceb9; padding:6px 10px; border-radius:var(--radius-pill); font-weight:700}
+    .pill.crit{background:#e5c7c7; color:#6d2a2a}
+    .pill.warn{background:#e9d9b7; color:#6b4b07}
+    .pill.info{background:#d8e4ff; color:#0e3f9a}
+
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes popIn{to{transform:translateY(0)}}
+  </style>
+</head>
+<body>
+  <a class="top-link" id="backLink" href="#">← Volver</a>
+  <div class="wrap">
+    <h1>Alertas de Stock</h1>
+    <p class="sub">Productos que requieren atención inmediata</p>
+
+    <!-- Filtros de estado + contador -->
+    <div class="toolbar">
+      <div class="state-filters">
+        <button class="chip-btn active" data-state="">Todos</button>
+        <button class="chip-btn chip-red" data-state="red">🔴 Sin stock</button>
+        <button class="chip-btn chip-orange" data-state="orange">🟠 Bajo mínimo</button>
+        <button class="chip-btn chip-blue" data-state="blue">🔵 En mínimo</button>
+      </div>
+      <span id="count" class="badge">0 alertas</span>
+    </div>
+
+    <div id="alertList" class="card" aria-live="polite">
+      <p class="muted">Cargando productos...</p>
+    </div>
+
+    <!-- Recomendaciones con colores y leyenda -->
+    <div class="reco">
+      <h3>Indicaciones de colores:</h3>
+      <ul>
+        <li><span class="dot red"></span><strong style="color:#b24b36;">Prioridad Alta:</strong> Reabastecer productos sin stock.</li>
+        <li><span class="dot orange"></span><strong style="color:#c98016;">Planificar Reabastecimiento:</strong> Contactar proveedores para productos con stock bajo.</li>
+        <li><span class="dot blue"></span><strong style="color:#2a7fff;">Revisar Stock Mínimo:</strong> Ajustar niveles mínimos según demanda histórica.</li>
+      </ul>
+
+      <hr style="margin:14px 0; border:none; border-top:2px dashed rgba(0,0,0,.15);">
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mDesc">
+    <div class="box">
+      <h3 id="mTitle">Reabastecer producto</h3>
+      <p id="mDesc" class="lead">Actualiza el stock del producto seleccionado.</p>
+      <div class="row" style="margin-bottom:8px">
+        <span class="pill" id="mCode">SKU —</span>
+        <span class="pill" id="mCat">Categoría —</span>
+        <span class="pill" id="mMin">Mínimo —</span>
+      </div>
+      <div class="field">
+        <label for="newStock">Nuevo valor de stock</label>
+        <input type="number" id="newStock" class="input" min="0" placeholder="Ej. 25"/>
+        <div class="row"><span class="hint">Consejo: coloca un valor ≥ mínimo para salir de alerta.</span></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="mCancel">Cancelar</button>
+        <button class="btn primary" id="mSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= Utilidades para el botón "Volver" ========= */
+    const sameOrigin = (url) => {
+      try { const u = new URL(url, location.href); return u.origin === location.origin; }
+      catch { return false; }
+    };
+    const mapRoleToHome = (role) => {
+      role = String(role || '').toLowerCase();
+      if (role === 'admin') return 'index_admin.html';
+      if (role === 'gerente') return 'index_gerente.html';
+      return null;
+    };
+
+    /* ========= Botón "Volver" robusto (sin bloquear por rol) ========= */
+    (function setBackLink(){
+      const a = document.getElementById('backLink');
+      const params = new URLSearchParams(location.search);
+      const from = (params.get('from') || '').toLowerCase();
+      const ref = document.referrer;
+      let resolved = null;
+
+      // 1) ?from=admin|gerente
+      if (from === 'admin') resolved = 'index_admin.html';
+      else if (from === 'gerente') resolved = 'index_gerente.html';
+
+      // 2) referrer del mismo origen
+      if (!resolved && ref && sameOrigin(ref)) {
+        if (ref.includes('index_admin.html')) resolved = 'index_admin.html';
+        else if (ref.includes('index_gerente.html')) resolved = 'index_gerente.html';
+      }
+
+      // 3) sessionStorage
+      if (!resolved) {
+        const last = sessionStorage.getItem('lastDashboard');
+        if (last) resolved = last;
+      }
+
+      // 4) localStorage (pista, no obligatorio)
+      if (!resolved) {
+        try{
+          const u = JSON.parse(localStorage.getItem('inv.user') || '{}');
+          resolved = mapRoleToHome(u.role);
+        }catch(_){}
+      }
+
+      // 5) /api/me opcional con timeout corto
+      const setHref = (href) => a.setAttribute('href', href || 'roles.html');
+      setHref(resolved || 'roles.html'); // provisional
+
+      let timedOut = false;
+      const timer = setTimeout(()=> timedOut = true, 1200);
+      fetch('/api/me', { credentials:'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (timedOut || !data) return;
+          if (!resolved) {
+            const byRole = mapRoleToHome(data?.role);
+            if (byRole) setHref(byRole);
+          }
+        })
+        .catch(()=>{})
+        .finally(()=> clearTimeout(timer));
+
+      // Pista para otras pantallas
+      if (resolved) sessionStorage.setItem('lastDashboard', resolved);
+
+      // UX: si hay historial válido, usar history.back()
+      a.addEventListener('click', (e)=>{
+        const canGoBack = sameOrigin(ref) && history.length > 1;
+        if (canGoBack) {
+          e.preventDefault();
+          history.back();
+        }
+      });
+    })();
+
+    /* ========= Lógica de Alertas ========= */
+    const $ = s => document.querySelector(s);
+    const escapeHtml = s => String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+    // severidad: red (0), orange (0<stock<min), blue (stock==min)
+    const getSeverity = p => {
+      const st = Number(p.stock), mn = Number(p.min_stock);
+      if (st <= 0) return 'red';
+      if (st < mn) return 'orange';
+      if (st === mn) return 'blue';
+      return null;
+    };
+
+    let DATA = [];        // todos los productos
+    let alerts = [];      // productos en alerta (<= min)
+    let stateFilter = ""; // "", "red", "orange", "blue"
+
+    const countEl = $('#count');
+    const alertList = $('#alertList');
+    const stateBtns = Array.from(document.querySelectorAll('.state-filters .chip-btn'));
+
+    stateBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        stateBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        stateFilter = btn.dataset.state || "";
+        render();
+      });
+    });
+
+    async function loadAlerts(){
+      alertList.innerHTML = `<p class="muted">Cargando productos...</p>`;
+      try{
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        if(!res.ok || !data?.ok) throw new Error(data?.error || 'Error al cargar');
+        DATA = data.data || [];
+        // incluye <= mínimo
+        alerts = DATA.filter(p => Number(p.stock) <= Number(p.min_stock));
+        render();
+      }catch(err){
+        alertList.innerHTML = `<p class="muted">Error: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    function render(){
+      const list = alerts.filter(p => !stateFilter || getSeverity(p) === stateFilter);
+      countEl.textContent = `${list.length} alerta${list.length===1?'':'s'}`;
+
+      if(!list.length){
+        alertList.innerHTML = `<p class="muted">No hay elementos para el filtro seleccionado.</p>`;
+        return;
+      }
+
+      alertList.innerHTML = list.map(p=>{
+        const sev = getSeverity(p);
+        const sevLabel = sev==='red' ? 'Prioridad Alta' : sev==='orange' ? 'Stock Bajo' : 'En mínimo';
+        const sevColor = sev==='red' ? 'var(--danger)' : sev==='orange' ? 'var(--warn)' : 'var(--info)';
+        return `
+          <div class="item sev-${sev}">
+            <div class="info">
+              <strong>${escapeHtml(p.name)}</strong>
+              <span class="badge-mini">${sevLabel}</span><br>
+              <span class="muted">SKU: ${escapeHtml(p.code)} · Categoría: ${escapeHtml(p.categoria||'—')}</span><br>
+              <span style="color:${sevColor}">
+                ${
+                  sev==='red'
+                  ? '⛔ Sin stock'
+                  : sev==='orange'
+                    ? '⚠ Stock actual: '+p.stock+' (Mínimo: '+p.min_stock+')'
+                    : 'ℹ Stock en el mínimo: '+p.stock
+                }
+              </span>
+            </div>
+            <div class="right">
+              <button class="btn secondary" onclick="ver(${p.id})">Ver producto</button>
+              <button class="btn primary" onclick='openModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)}, ${JSON.stringify(p.code)}, ${JSON.stringify(p.categoria||"")}, ${p.stock}, ${p.min_stock})'>
+                Reabastecer
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function ver(id){ window.location.href = 'productos.html#id-'+id; }
+
+    // ===== Modal =====
+    const modal = $('#modal');
+    const mCancel = $('#mCancel');
+    const mSave = $('#mSave');
+    const mStock = $('#newStock');
+
+    function openModal(id, name, code, categoria, stock, min_stock){
+      $('#mTitle').textContent = `Reabastecer — ${name}`;
+      $('#mDesc').textContent = `Actualiza el stock de "${name}".`;
+      $('#mCode').textContent = `SKU ${code}`;
+      $('#mCat').textContent = `Categoría ${categoria || '—'}`;
+      $('#mMin').textContent = `Mínimo ${min_stock}`;
+
+      // pinta pill según severidad actual
+      const st = Number(stock), mn = Number(min_stock);
+      const pill = $('#mMin');
+      pill.classList.remove('crit','warn','info');
+      if(st <= 0) pill.classList.add('crit');
+      else if(st < mn) pill.classList.add('warn');
+      else if(st === mn) pill.classList.add('info');
+
+      mStock.value = stock;
+      modal.classList.add('open');
+      mStock.focus();
+      document.addEventListener('keydown', onKey);
+      modal.addEventListener('click', onOverlayClick);
+      modal.dataset.id = id;
+    }
+    function closeModal(){
+      modal.classList.remove('open');
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('click', onOverlayClick);
+      delete modal.dataset.id;
+    }
+    function onKey(e){
+      if(e.key === 'Escape'){ e.preventDefault(); closeModal(); }
+      if(e.key === 'Enter'){ e.preventDefault(); saveStock(); }
+    }
+    function onOverlayClick(e){
+      if(e.target === modal) closeModal();
+    }
+
+    async function saveStock(){
+      const id = modal.dataset.id;
+      const newVal = Number(mStock.value);
+      if(isNaN(newVal) || newVal < 0){ alert('Ingresa un número válido.'); return; }
+      try{
+        const res = await fetch(`/api/products/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ stock:newVal })
+        });
+        const payload = await res.json().catch(()=> ({}));
+        if(!res.ok || !payload?.ok) throw new Error(payload?.error || 'Error al actualizar');
+        closeModal();
+        loadAlerts(); // refresca lista y contador respetando filtro
+      }catch(err){
+        alert('Error: '+err.message);
+      }
+    }
+
+    mCancel.addEventListener('click', closeModal);
+    mSave.addEventListener('click', saveStock);
+
+    // Init
+    loadAlerts();
+  </script>
+</body>
+</html>

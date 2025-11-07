@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Sistema de Inventario — Dashboard (Empleado)</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e2d8be; --muted:#6b6253; --text:#2b2b2b; --focus:#2a7fff;
+      --chip:#d6cbb3; --surface:#e8dec3; --shadow:0 10px 24px rgba(0,0,0,.08);
+      --ok:#0a7a2f; --warn:#b9770e; --danger:#8b1111; --tab-accent:#d6ccb6;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+    }
+    .wrap{max-width:1100px; margin:20px auto 44px; padding:0 14px}
+
+    .top{
+      background:var(--surface); border-radius:18px; padding:16px 18px; box-shadow:var(--shadow);
+      display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px;
+    }
+    .brand h1{margin:0; font-size:1.4rem; letter-spacing:.3px}
+    .brand p{margin:4px 0 0; color:var(--muted); font-size:.95rem}
+    .right{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .chip{display:flex; align-items:center; gap:10px; background:var(--chip); padding:8px 12px; border-radius:999px; font-weight:700;}
+    .chip .role{opacity:.8; font-weight:600}
+    .btn{appearance:none; border:0; border-radius:999px; padding:10px 14px; cursor:pointer;
+         background:#00000014; color:#2b2b2b; font-weight:800; letter-spacing:.5px;
+         transition:transform .08s ease, filter .2s ease;}
+    .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
+    .btn.danger{background:var(--danger); color:#fff}
+
+    .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:14px 0}
+    .kpi{background:var(--surface); border-radius:16px; padding:14px 16px; box-shadow:var(--shadow)}
+    .kpi h3{margin:0; font-size:.95rem; color:#3a372f}
+    .kpi .big{margin:8px 0 2px; font-size:1.6rem; font-weight:800}
+    .kpi .sub{margin:0; color:var(--muted); font-size:.9rem}
+    .kpi.warn { outline:3px solid #e5d5b6 } .kpi.warn .big{color:var(--warn)}
+    .kpi.alert { outline:3px solid #e5c7c7 } .kpi.alert .big{color:var(--danger)}
+
+    .tabs{display:inline-flex; gap:8px; background:var(--surface); padding:8px; border-radius:999px; box-shadow:var(--shadow)}
+    .tab{padding:8px 14px; border-radius:999px; font-weight:800; cursor:pointer; color:#615947}
+    .tab.active{background:var(--tab-accent); color:#000}
+    .tab.accent{background:var(--tab-accent); color:#000}
+
+    .section{background:var(--surface); border-radius:18px; padding:16px; box-shadow:var(--shadow); margin-top:14px;}
+    .section h2{margin:0 0 6px; font-size:1rem; letter-spacing:.2px}
+    .mini-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+    .mini{background:#d7ceb9; border-radius:12px; padding:12px 14px}
+    .mini.featured{outline:3px solid #7d6cff; box-shadow:0 0 0 3px rgba(125,108,255,.15) inset}
+    .mini h4{margin:0; font-size:.92rem}
+    .mini .n{font-size:1.4rem; font-weight:800; margin:6px 0 2px}
+
+    .cards-2col{display:grid; grid-template-columns:1.2fr .8fr; gap:14px; margin-top:14px}
+    .panel{background:var(--surface); border-radius:18px; padding:16px; box-shadow:var(--shadow)}
+    .panel h3{margin:0 0 8px; font-size:1rem}
+    .rowbar{display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; margin:10px 0}
+    .bar{height:10px; background:#c0b59e; border-radius:999px; overflow:hidden}
+    .bar > i{display:block; height:100%; background:#8a816f}
+
+    /* ➕ estilos extra para el bloque “Estado de inventario” */
+    .muted{color:var(--muted)}
+    .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+    .tile{background:var(--surface); border-radius:18px; padding:16px; box-shadow:var(--shadow)}
+    .stat{font-weight:800; font-size:1.6rem; margin-top:6px}
+    .badge{display:inline-block; background:#d7ceb9; padding:6px 10px; border-radius:999px; font-weight:700}
+
+    footer{margin:24px 0 8px; text-align:center; color:var(--muted); font-size:.95rem}
+
+    @media (max-width:900px){
+      .kpis{grid-template-columns:repeat(2,1fr)}
+      .cards-2col{grid-template-columns:1fr}
+      .mini-kpis{grid-template-columns:repeat(2,1fr)}
+      .grid-3{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Topbar -->
+    <div class="top">
+      <div class="brand">
+        <h1>SISTEMA DE INVENTARIO</h1>
+        <p>Monitoreo y gestión de productos en tiempo real</p>
+      </div>
+      <div class="right">
+        <div class="chip" id="userChip">
+          <span id="userName">Empleado</span>
+          <span class="role" id="userRole">empleado</span>
+        </div>
+        <button class="btn danger" id="logout">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi"><div class="head"><h3>Total de productos</h3></div><div class="big" id="kpiProductos">—</div><p class="sub">Productos registrados</p></div>
+      <div class="kpi"><div class="head"><h3>Valor total</h3></div><div class="big" id="kpiValor">—</div><p class="sub">Valor del inventario</p></div>
+      <div class="kpi warn"><div class="head"><h3>Stock total</h3></div><div class="big" id="kpiStock">—</div><p class="sub">Unidades en stock</p></div>
+      <div class="kpi alert"><div class="head"><h3>Alertas Stock</h3></div><div class="big" id="kpiAlertas">—</div><p class="sub">Productos con stock bajo</p></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active">Dashboard</button>
+      <button class="tab accent" id="tabProductos">Productos</button>
+      <button class="tab accent" id="tabAlertas">Alertas</button>
+    </div>
+
+    <!-- Resumen -->
+    <div class="section">
+      <h2>Lista de Productos</h2>
+      <div class="mini-kpis">
+        <div class="mini"><h4>Productos Activos</h4><div class="n" id="miniActivos">—</div></div>
+        <div class="mini featured"><h4>Productos con Stock Bajo</h4><div class="n" id="miniBajo">—</div></div>
+        <div class="mini"><h4>Categorías</h4><div class="n" id="miniCats">—</div></div>
+        <div class="mini"><h4>Unidades Totales</h4><div class="n" id="miniUnits">—</div></div>
+      </div>
+    </div>
+
+    <div class="cards-2col">
+      <div class="panel">
+        <h3>Top 5 Productos por Valor</h3>
+        <div id="top5"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Estado de inventario</h3>
+        <div class="rowbar"><div style="width:100%"><div class="bar"><i id="barAlto" style="width:0%"></i></div><div class="muted">En nivel <strong id="cntAlto">0</strong> · <span id="pctAlto">0%</span></div></div></div>
+        <div class="rowbar"><div style="width:100%"><div class="bar"><i id="barBajo" style="width:0%"></i></div><div class="muted">Bajo mínimo <strong id="cntBajo">0</strong> · <span id="pctBajo">0%</span></div></div></div>
+
+        <!-- ➕ Tarjetas de detalle agregadas -->
+        <hr style="border:none;border-top:1px solid #d9cfb8; margin:14px 0"/>
+        <div class="grid-3">
+          <div class="tile">
+            <div class="muted">Categorías Activas</div>
+            <div class="stat" id="tileCats">—</div>
+            <span class="badge">Basado en productos</span>
+          </div>
+          <div class="tile">
+            <div class="muted">Precio Promedio</div>
+            <div class="stat" id="tileAvgPrice">—</div>
+            <span class="badge">Sumatoria de precios</span>
+          </div>
+          <div class="tile">
+            <div class="muted">Última Actualización</div>
+            <div class="stat" id="lastSync">—</div>
+            <span class="badge">Según productos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>© 2025 Douglas Omar Mendez Hernandez</footer>
+  </div>
+
+  <script>
+    // Mostrar nombre/rol del empleado desde localStorage (sin bloquear si no existe)
+    (function showEmployee(){
+      try{
+        const raw = localStorage.getItem('inv.user');
+        if(!raw) return;
+        const u = JSON.parse(raw);
+        if(u?.usuario) document.getElementById('userName').textContent = u.usuario;
+        if(u?.role)     document.getElementById('userRole').textContent = String(u.role).toLowerCase();
+      }catch(_){}
+    })();
+
+    // Navegación
+    document.getElementById('logout').onclick = () => {
+      localStorage.removeItem('inv.user');
+      window.location.href = 'roles.html';
+    };
+    document.getElementById('tabProductos').onclick = () => { window.location.href = 'productos_vista.html'; };
+    document.getElementById('tabAlertas').onclick   = () => { window.location.href = 'alertas_vista.html'; };
+
+    // Utilidades
+    const $ = s => document.querySelector(s);
+    const money = n => '$' + (Number(n||0)).toFixed(2);
+    const sum = (arr, f) => arr.reduce((acc, x) => acc + (f? f(x): x), 0);
+    const maxDate = (dates) => {
+      const valid = dates.map(d => new Date(d)).filter(dt => !isNaN(dt.getTime()));
+      return valid.length ? new Date(Math.max(...valid)) : null;
+    };
+    const escapeHtml = s =>
+      String(s).replace(/[&<>"']/g, m => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+      ));
+
+    // KPIs reales
+    async function loadData(){
+      try{
+        const res = await fetch('/api/products');
+        const payload = await res.json();
+        if(!res.ok || !payload?.ok) throw new Error(payload?.error || 'No se pudo cargar');
+        const products = payload.data || [];
+
+        const totalProducts = products.length;
+        const totalValue = sum(products, p => Number(p.price)*Number(p.stock));
+        const totalStock  = sum(products, p => Number(p.stock));
+        const alerts      = products.filter(p => Number(p.stock) < Number(p.min_stock)).length;
+
+        $('#kpiProductos').textContent = totalProducts;
+        $('#kpiValor').textContent     = money(totalValue);
+        $('#kpiStock').textContent     = totalStock;
+        $('#kpiAlertas').textContent   = alerts;
+
+        const cats = Array.from(new Set(products.map(p => p.categoria).filter(Boolean)));
+        $('#miniActivos').textContent = totalProducts;
+        $('#miniBajo').textContent    = alerts;
+        $('#miniCats').textContent    = cats.length;
+        $('#miniUnits').textContent   = totalStock;
+
+        const ranked = [...products]
+          .map(p => ({ ...p, _value: Number(p.price)*Number(p.stock) }))
+          .sort((a,b)=> b._value - a._value)
+          .slice(0,5);
+        renderTop5(ranked, totalValue);
+
+        const inLevel = totalProducts - alerts;
+        const pctAlto = totalProducts ? Math.round(inLevel * 100 / totalProducts) : 0;
+        const pctBajo = totalProducts ? Math.round(alerts   * 100 / totalProducts) : 0;
+        document.getElementById('cntAlto').textContent = inLevel;
+        document.getElementById('pctAlto').textContent = pctAlto + '%';
+        document.getElementById('cntBajo').textContent = alerts;
+        document.getElementById('pctBajo').textContent = pctBajo + '%';
+        document.getElementById('barAlto').style.width = pctAlto + '%';
+        document.getElementById('barBajo').style.width = pctBajo + '%';
+
+        // ➕ Detalle extra del Estado de inventario
+        $('#tileCats').textContent = cats.length;
+        const avgPrice = totalProducts ? sum(products, p => Number(p.price)) / totalProducts : 0;
+        $('#tileAvgPrice').textContent = money(avgPrice);
+        const last = maxDate(products.map(p => p.updated_at || p.created_at));
+        $('#lastSync').textContent = last ? last.toLocaleString() : '—';
+
+      }catch(err){ console.error(err); }
+    }
+
+    function renderTop5(list, totalValue){
+      const host = document.getElementById('top5');
+      if(!list.length){ host.innerHTML = `<div class="muted">No hay datos suficientes</div>`; return; }
+      host.innerHTML = list.map(p=>{
+        const val = Number(p._value||0);
+        const w = totalValue > 0 ? Math.max(4, Math.round((val/totalValue)*100)) : 4;
+        return `<div class="rowbar">
+                  <div><strong>${escapeHtml(p.name)}</strong><br/><span class="muted">${escapeHtml(p.categoria || '—')}</span></div>
+                  <div style="min-width:220px">
+                    <div class="bar"><i style="width:${w}%"></i></div>
+                    <div class="muted" style="text-align:right">${money(val)}</div>
+                  </div>
+                </div>`;
+      }).join('');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

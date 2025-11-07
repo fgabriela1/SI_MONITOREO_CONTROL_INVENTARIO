@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Nuevo Producto — Sistema de Inventario</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e8dec3; --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff; --shadow:0 10px 24px rgba(0,0,0,.08)
+    }
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+      color:var(--text);
+      min-height:100dvh;
+      display:grid;
+      place-items:center
+    }
+
+    .card{
+      width:min(860px,92vw);
+      background:var(--card);
+      border-radius:28px;
+      padding:28px 26px;
+      box-shadow:var(--shadow)
+    }
+
+    h1{margin:0 0 6px;text-align:center;font-size:1.35rem}
+    .sub{margin:0 0 18px;text-align:center;color:var(--muted)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px 14px;
+    }
+
+    .full{grid-column:1 / -1}
+
+    label{
+      display:block;
+      font-weight:800;
+      margin:2px 10px 6px;
+      font-size:1rem;
+    }
+
+    .input{
+      width:95%;
+      display:block;
+      margin:0 auto;
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      background:#cfc6b7;
+      outline:none;
+      font-size:0.95rem;
+      color:#2b2b2b;
+      box-sizing:border-box;
+    }
+    .input:focus{box-shadow:0 0 0 3px var(--focus)}
+
+    .btns{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin-top:16px;
+      flex-wrap:wrap
+    }
+    .btn{
+      appearance:none;
+      border:0;
+      border-radius:999px;
+      padding:12px 20px;
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:.4px;
+      background:#6b6253;
+      color:#fff
+    }
+    .btn.secondary{background:#00000022;color:#2b2b2b}
+    .msg{margin-top:12px;text-align:center;font-size:1rem}
+    .ok{color:#0a7a2f}.err{color:#8b1111}
+    .top-link{
+      position:fixed;left:18px;top:16px;
+      text-decoration:none;font-weight:700;color:#5b5b5b;cursor:pointer
+    }
+
+    @media (max-width:720px){
+      .grid{grid-template-columns:1fr}
+      .input{width:100%;}
+    }
+  </style>
+</head>
+<body>
+  <a class="top-link" id="backLink" href="#">← Volver</a>
+  <div class="card" role="form" aria-label="Registrar nuevo producto">
+    <h1>Nuevo Producto</h1>
+    <p class="sub">Completa los campos del producto</p>
+
+    <form id="form">
+      <div class="grid">
+        <div>
+          <label for="code">Código</label>
+          <input id="code" class="input" name="code" required placeholder="ej. HP15-2024" />
+        </div>
+        <div>
+          <label for="name">Nombre</label>
+          <input id="name" class="input" name="name" required placeholder="ej. Laptop HP Pavilion 15" />
+        </div>
+        <div class="full">
+          <label for="categoria">Categoría</label>
+          <input id="categoria" class="input" name="categoria" required placeholder="ej. Laptops / Monitores / Periféricos" />
+        </div>
+        <div>
+          <label for="price">Precio ($)</label>
+          <input id="price" class="input" name="price" type="number" step="0.01" min="0" required placeholder="0.00" />
+        </div>
+        <div>
+          <label for="stock">Stock</label>
+          <input id="stock" class="input" name="stock" type="number" step="1" min="0" required placeholder="0" />
+        </div>
+        <div class="full">
+          <label for="min_stock">Stock mínimo</label>
+          <input id="min_stock" class="input" name="min_stock" type="number" step="1" min="0" required placeholder="0" />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn" type="submit">Guardar</button>
+        <button class="btn secondary" type="button" id="cancel">Cancelar</button>
+      </div>
+      <div id="feedback" class="msg" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <script>
+    /* ========= Utilidades para el botón "Volver" (idéntico a Productos) ========= */
+    const sameOrigin = (url) => {
+      try { const u = new URL(url, location.href); return u.origin === location.origin; }
+      catch { return false; }
+    };
+    const mapRoleToHome = (role) => {
+      role = String(role || '').toLowerCase();
+      if (role === 'admin') return 'index_admin.html';
+      if (role === 'gerente') return 'index_gerente.html';
+      return null;
+    };
+
+    /* ========= Botón "Volver" robusto ========= */
+    (function setBackLink(){
+      const a = document.getElementById('backLink');
+      const params = new URLSearchParams(location.search);
+      const from = (params.get('from') || '').toLowerCase();
+      const ref = document.referrer;
+      let resolved = null;
+
+      // 1) ?from=admin|gerente
+      if (from === 'admin') resolved = 'index_admin.html';
+      else if (from === 'gerente') resolved = 'index_gerente.html';
+
+      // 2) referrer del mismo origen
+      if (!resolved && ref && sameOrigin(ref)) {
+        if (ref.includes('index_admin.html'))   resolved = 'index_admin.html';
+        else if (ref.includes('index_gerente.html')) resolved = 'index_gerente.html';
+      }
+
+      // 3) sessionStorage
+      if (!resolved) {
+        const last = sessionStorage.getItem('lastDashboard');
+        if (last) resolved = last;
+      }
+
+      // 4) localStorage (pista por rol)
+      if (!resolved) {
+        try{
+          const u = JSON.parse(localStorage.getItem('inv.user') || '{}');
+          resolved = mapRoleToHome(u.role);
+        }catch(_){}
+      }
+
+      // 5) /api/me opcional con timeout corto
+      let timedOut = false;
+      const timer = setTimeout(()=> timedOut = true, 1200);
+      const setHref = (href) => a.setAttribute('href', href || 'roles.html');
+      setHref(resolved || 'roles.html'); // provisional
+
+      fetch('/api/me', { credentials:'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (timedOut || !data) return;
+          if (!resolved) {
+            const byRole = mapRoleToHome(data?.role);
+            if (byRole) setHref(byRole);
+          }
+        })
+        .catch(()=>{})
+        .finally(()=> clearTimeout(timer));
+
+      // guarda pista para otras pantallas
+      if (resolved) sessionStorage.setItem('lastDashboard', resolved);
+
+      // UX: si hay historial válido, usar history.back()
+      a.addEventListener('click', (e)=>{
+        const canGoBack = sameOrigin(ref) && history.length > 1;
+        if (canGoBack) {
+          e.preventDefault();
+          history.back();
+        }
+      });
+    })();
+
+    // ======= Form =======
+    const form = document.getElementById('form');
+    const fb   = document.getElementById('feedback');
+
+    // Cancelar: si hay historial válido, back; si no, usa el mismo destino que el botón Volver
+    document.getElementById('cancel').addEventListener('click', (e) => {
+      e.preventDefault();
+      if (history.length > 1 && sameOrigin(document.referrer)) {
+        history.back();
+      } else {
+        // usa el href ya resuelto del backLink
+        const dest = document.getElementById('backLink').getAttribute('href') || 'roles.html';
+        window.location.href = dest;
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      fb.textContent = 'Guardando…'; fb.className = 'msg';
+
+      const payload = {
+        code: document.getElementById('code').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        categoria: document.getElementById('categoria').value.trim(),
+        price: parseFloat(document.getElementById('price').value || '0'),
+        stock: parseInt(document.getElementById('stock').value || '0'),
+        min_stock: parseInt(document.getElementById('min_stock').value || '0')
+      };
+
+      if(!payload.code || !payload.name || !payload.categoria){
+        fb.textContent = 'Código, nombre y categoría son obligatorios.'; 
+        fb.className = 'msg err'; 
+        return;
+      }
+
+      try{
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(()=> ({}));
+        if(!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo guardar');
+
+        fb.textContent = 'Producto creado correctamente'; 
+        fb.className = 'msg ok';
+        setTimeout(()=> { window.location.href = 'productos.html?from=' + encodeURIComponent((JSON.parse(localStorage.getItem('inv.user')||'{}').role||'').toLowerCase()); }, 400);
+      }catch(err){
+        fb.textContent = err.message || 'Error del servidor'; 
+        fb.className = 'msg err';
+      }
+    });
+  </script>
+</body>
+</html>

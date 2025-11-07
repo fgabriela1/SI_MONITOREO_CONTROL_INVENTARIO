@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Alertas de Stock — Vista</title>
+  <style>
+    :root{
+      --bg:#f7f0dc; --card:#e8dec3; --surface:#f1e8d2;
+      --text:#2b2b2b; --muted:#5b5b5b; --focus:#2a7fff;
+      --danger:#b24b36; --warn:#c98016; --info:#2a7fff; --ok:#0a7a2f;
+      --shadow:0 10px 24px rgba(0,0,0,.08);
+      --radius-lg:20px; --radius-pill:999px;
+      --chip:#d7ceb9;
+    }
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.35), transparent 60%), var(--bg);
+      color:var(--text); min-height:100dvh; display:flex; flex-direction:column; align-items:center; padding:20px;
+    }
+    .wrap{width:min(960px,95vw)}
+    h1{margin:0; font-size:1.4rem; text-align:center}
+    p.sub{margin:4px 0 14px; text-align:center; color:var(--muted)}
+
+    /* Volver (igual estilo que otras vistas) */
+    .top-link{position:fixed; left:18px; top:16px; text-decoration:none; font-weight:700; color:var(--muted)}
+
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between; margin:12px 0}
+    .state-filters{display:flex; gap:8px; flex-wrap:wrap}
+    .chip-btn{
+      appearance:none; border:0; background:var(--chip); color:#2b2b2b;
+      border-radius:var(--radius-pill); padding:8px 12px; font-weight:800; cursor:pointer;
+      transition:transform .08s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .chip-btn:hover{transform:translateY(-1px); filter:brightness(1.03)}
+    .chip-btn.active{box-shadow:0 0 0 3px rgba(0,0,0,.08) inset}
+    .chip-red{background:#e7c1bc} .chip-orange{background:#ecd6b0} .chip-blue{background:#cfe0ff}
+
+    .badge{display:inline-block; background:var(--chip); padding:6px 10px; border-radius:var(--radius-pill); font-weight:800}
+
+    .card{background:var(--card); border-radius:var(--radius-lg); padding:16px 20px; box-shadow:var(--shadow); margin-bottom:16px}
+    .item{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      background:var(--surface); border-radius:14px; padding:14px 18px; margin:10px 0;
+      border-left:6px solid transparent;
+    }
+    .item .badge-mini{
+      display:inline-block; color:#fff; border-radius:var(--radius-pill);
+      padding:3px 10px; font-weight:800; font-size:.8rem; margin-left:6px;
+    }
+    /* Colores por severidad */
+    .sev-red{ border-left-color: var(--danger); background: linear-gradient(0deg, #f5e1de, var(--surface)); }
+    .sev-red .badge-mini{ background: var(--danger); }
+    .sev-orange{ border-left-color: var(--warn); background: linear-gradient(0deg, #f4e8d6, var(--surface)); }
+    .sev-orange .badge-mini{ background: var(--warn); }
+    .sev-blue{ border-left-color: var(--info); background: linear-gradient(0deg, #e1e9fb, var(--surface)); }
+    .sev-blue .badge-mini{ background: var(--info); }
+
+    .info strong{font-size:1.1rem}
+    .muted{color:var(--muted); font-size:.9rem}
+
+    .reco{background:#f0e5c9; border-radius:14px; padding:16px 20px; box-shadow:var(--shadow)}
+    .reco h3{margin:0 0 8px}
+    .reco ul{margin:0; padding-left:20px; line-height:1.6}
+    .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .dot.red{background:var(--danger)} .dot.orange{background:var(--warn)} .dot.blue{background:var(--info)}
+  </style>
+</head>
+<body>
+  <a class="top-link" href="index_empleado.html">← Volver</a>
+  <div class="wrap">
+    <h1>Alertas de Stock</h1>
+    <p class="sub">Productos que requieren atención inmediata</p>
+
+    <!-- Filtros de estado + contador -->
+    <div class="toolbar">
+      <div class="state-filters">
+        <button class="chip-btn active" data-state="">Todos</button>
+        <button class="chip-btn chip-red" data-state="red">🔴 Sin stock</button>
+        <button class="chip-btn chip-orange" data-state="orange">🟠 Bajo mínimo</button>
+        <button class="chip-btn chip-blue" data-state="blue">🔵 En mínimo</button>
+      </div>
+      <span id="count" class="badge">0 alertas</span>
+    </div>
+
+    <div id="alertList" class="card" aria-live="polite">
+      <p class="muted">Cargando productos...</p>
+    </div>
+
+    <!-- Recomendaciones con colores y leyenda -->
+    <div class="reco">
+      <h3>Indicaciones de colores:</h3>
+      <ul>
+        <li><span class="dot red"></span><strong style="color:#b24b36;">Prioridad Alta:</strong> Reabastecer productos sin stock.</li>
+        <li><span class="dot orange"></span><strong style="color:#c98016;">Planificar Reabastecimiento:</strong> Contactar proveedores para productos con stock bajo.</li>
+        <li><span class="dot blue"></span><strong style="color:#2a7fff;">Revisar Stock Mínimo:</strong> Ajustar niveles mínimos según demanda histórica.</li>
+      </ul>
+      <hr style="margin:14px 0; border:none; border-top:2px dashed rgba(0,0,0,.15);">
+    </div>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const escapeHtml = s => String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+    // severidad: red (0), orange (0<stock<min), blue (stock==min)
+    const getSeverity = p => {
+      const st = Number(p.stock), mn = Number(p.min_stock);
+      if (st <= 0) return 'red';
+      if (st < mn) return 'orange';
+      if (st === mn) return 'blue';
+      return null;
+    };
+
+    let DATA = [];        // todos los productos
+    let alerts = [];      // productos en alerta (<= min)
+    let stateFilter = ""; // "", "red", "orange", "blue"
+
+    const countEl = $('#count');
+    const alertList = $('#alertList');
+    const stateBtns = Array.from(document.querySelectorAll('.state-filters .chip-btn'));
+
+    stateBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        stateBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        stateFilter = btn.dataset.state || "";
+        render();
+      });
+    });
+
+    async function loadAlerts(){
+      alertList.innerHTML = `<p class="muted">Cargando productos...</p>`;
+      try{
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        if(!res.ok || !data?.ok) throw new Error(data?.error || 'Error al cargar');
+        DATA = data.data || [];
+        // en alerta: stock <= mínimo
+        alerts = DATA.filter(p => Number(p.stock) <= Number(p.min_stock));
+        render();
+      }catch(err){
+        alertList.innerHTML = `<p class="muted">Error: ${escapeHtml(err.message||'No se pudo cargar')}</p>`;
+      }
+    }
+
+    function render(){
+      const list = alerts.filter(p => !stateFilter || getSeverity(p) === stateFilter);
+      countEl.textContent = `${list.length} alerta${list.length===1?'':'s'}`;
+
+      if(!list.length){
+        alertList.innerHTML = `<p class="muted">No hay elementos para el filtro seleccionado.</p>`;
+        return;
+      }
+
+      alertList.innerHTML = list.map(p=>{
+        const sev = getSeverity(p);
+        const sevLabel = sev==='red' ? 'Prioridad Alta' : sev==='orange' ? 'Stock Bajo' : 'En mínimo';
+        const sevColor = sev==='red' ? 'var(--danger)' : sev==='orange' ? 'var(--warn)' : 'var(--info)';
+        return `
+          <div class="item sev-${sev}">
+            <div class="info">
+              <strong>${escapeHtml(p.name)}</strong>
+              <span class="badge-mini">${sevLabel}</span><br>
+              <span class="muted">SKU: ${escapeHtml(p.code)} · Categoría: ${escapeHtml(p.categoria||'—')}</span><br>
+              <span style="color:${sevColor}">
+                ${
+                  sev==='red'
+                  ? '⛔ Sin stock'
+                  : sev==='orange'
+                    ? '⚠ Stock actual: '+p.stock+' (Mínimo: '+p.min_stock+')'
+                    : 'ℹ Stock en el mínimo: '+p.stock
+                }
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Init
+    loadAlerts();
+  </script>
+</body>
+</html>
