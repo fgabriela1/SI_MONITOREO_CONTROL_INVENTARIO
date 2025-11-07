@@ -57,9 +57,20 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier: id, password: pwd })
         });
-        if (!res.ok) throw new Error('Credenciales inválidas');
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.error || 'Credenciales inválidas');
+
+        // Guardar sesión mínima para mostrar nombre en index_empleado
+        localStorage.setItem('inv.user', JSON.stringify({
+          role: ROLE,
+          usuario: data.user?.usuario || id,
+          correo: data.user?.correo || '',
+          id: data.user?.id ?? null
+        }));
+
         fb.textContent = 'Acceso concedido'; fb.className = 'msg ok';
-        setTimeout(() => { window.location.href = 'hola.html'; }, 300);
+        setTimeout(() => { window.location.href = 'index_empleado.html'; }, 300);
       } catch (err){
         fb.textContent = err.message || 'Error de conexión'; fb.className = 'msg err';
       }

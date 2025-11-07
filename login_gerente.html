@@ -16,7 +16,7 @@
     .btn{width:min(420px,86%);display:block;margin:22px auto 6px;padding:14px 20px;border:0;border-radius:34px;background:#6b6253;color:#fff;font-weight:800;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;transition:transform .08s ease, filter .2s ease}
     .btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
     .btn:active{transform:translateY(0)}
-    .tag{display:inline-flex;align-items:center;gap:8px;background:var(--pill);color:#fff;padding:8px 12px;border-radius:999px;font-weight:800;margin:0 auto 8px}
+    .tag{display:inline-flex;align-items:center;gap:8px;background:#b1a792;color:#fff;padding:8px 12px;border-radius:999px;font-weight:800;margin:0 auto 8px}
     .center{display:grid;place-items:center}
     .msg{margin-top:10px;text-align:center;font-size:.95rem}
     .msg.ok{color:#0a7a2f}.msg.err{color:#8b1111}
@@ -47,6 +47,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       fb.textContent = 'Verificando…'; fb.className = 'msg';
+
       const id = document.getElementById('id').value.trim();
       const pwd = document.getElementById('pwd').value;
       if (!id || !pwd){ fb.textContent = 'Completa ambos campos.'; fb.className = 'msg err'; return; }
@@ -57,9 +58,23 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier: id, password: pwd })
         });
-        if (!res.ok) throw new Error('Credenciales inválidas');
+
+        const payload = await res.json().catch(()=>({}));
+        if (!res.ok || !payload?.ok) {
+          throw new Error(payload?.error || 'Credenciales inválidas');
+        }
+
+        // Guardar sesión en localStorage para que index_gerente.html la lea
+        const u = payload.user || {};
+        const session = { id: u.id, usuario: u.usuario, correo: u.correo, role: payload.role || ROLE };
+        try{
+          localStorage.setItem('inv.user', JSON.stringify(session));
+          localStorage.setItem('user', JSON.stringify(session)); // compat
+        }catch(_){}
+
         fb.textContent = 'Acceso concedido'; fb.className = 'msg ok';
-        setTimeout(() => { window.location.href = 'hola.html'; }, 300);
+        // Redirige a la vista del gerente
+        setTimeout(() => { window.location.href = 'index_gerente.html'; }, 300);
       } catch (err){
         fb.textContent = err.message || 'Error de conexión'; fb.className = 'msg err';
       }
